@@ -1,0 +1,20 @@
+{
+  "retrievedFor": "Newtn Technology × Sampoerna Gold interactive MVP prototype",
+  "sourceWebsite": "https://sampoernagold.com/",
+  "brand": {
+    "gold": "#C3A753",
+    "charcoal": "#1C1C1C",
+    "red": "#B72731",
+    "websiteFonts": ["Montserrat", "Inter", "Playfair Display"]
+  },
+  "assets": {
+    "waris-logo.png": "https://sampoernagold.com/assets/front-end/images/logo-waris.png",
+    "waris-05g.jpg": "https://sampoernagold.com/uploads/product/1_20250611115437.thumb.jpg",
+    "waris-1g.jpg": "https://sampoernagold.com/uploads/product/3_20250611115628.thumb.jpg",
+    "waris-5g.jpg": "https://sampoernagold.com/uploads/product/8_20250611115938.thumb.jpg",
+    "waris-10g.jpg": "https://sampoernagold.com/uploads/product/9_20250611120018.thumb.jpg",
+    "waris-1g-back.jpg": "https://sampoernagold.com/uploads/product/3_20250611115647.thumb.jpg",
+    "waris-10g-back.jpg": "https://sampoernagold.com/uploads/product/9_20250611120031.thumb.jpg"
+  },
+  "notes": "Official assets downloaded unmodified. Product photos are JPEGs, while the WARIS logo has transparency. Alternate images show front and back packaging on white."
+}
