@@ -8,10 +8,10 @@ export type Page = 'referral' | 'catalog' | 'account' | 'referral-transactions' 
 export interface Profile {
   id: string; fullName: string; phone: string; tier: Tier; referralCode: string;
   referrerCode: string | null; verificationStatus: VerificationStatus;
-  photoUrl?: string; ktpPath?: string; selfiePath?: string; rejectionReason?: string;
+  photoUrl?: string; rejectionReason?: string;
 }
 export interface Product { id: string; name: string; grams: number; image: string; price: number; available: boolean; }
-export interface GoldPrice { sell: number; buyback: number; updatedAt: string; source: 'live' | 'sample'; }
+export interface GoldPrice { sell: number; buyback: number; updatedAt: string; source: 'sample'; }
 export interface Stockpoint { id: string; name: string; city: string; address: string; }
 export interface ChainMember { id: string; fullName: string; referralCode: string; tier: Tier; level: number; qualified: boolean; rate: number; commission: number; commissionVisible?: boolean; }
 export interface Order {
@@ -30,14 +30,13 @@ export interface AppData { profile: Profile | null; products: Product[]; price: 
 export interface CheckoutInput { productId: string; quantity: number; intent: PurchaseIntent; stockpointId: string; paymentMethod: PaymentMethod; idempotencyKey: string; }
 export interface RegistrationInput { fullName: string; phone: string; otp: string; referralCode: string; ktp: File | null; selfie: File | null; consent: boolean; }
 export interface Repository {
-  readonly mode: 'sandbox' | 'supabase' | 'unconfigured';
+  readonly mode: 'demo';
   load(): Promise<AppData>;
+  referralLink(origin: string): string;
   sendOtp(phone: string): Promise<void>;
   verifyAndSubmit(input: RegistrationInput): Promise<Profile>;
   signOut(): Promise<void>;
-  updatePhone(phone: string): Promise<void>;
   createCheckout(input: CheckoutInput): Promise<Order>;
   confirmPayment(orderId: string): Promise<Order>;
-  documentUrl(path: string): Promise<string>;
   subscribe?(callback: () => void): () => void;
 }

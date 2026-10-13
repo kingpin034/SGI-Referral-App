@@ -1,7 +1,7 @@
 import type { AppData, ChainMember, NetworkMember, Order, Profile, RegistrationInput, Repository, Tier } from './types';
 import { calculateCommission, commissionRate, isValidPhone, nextPayoutDate, normalizePhone, qualifyTier, validateCheckout, validateRegistration } from './domain';
 
-export const SANDBOX_OTP = '123456';
+export const DEMO_OTP = '123456';
 const demoDate = new Date().toISOString();
 const clone = <T>(value: T): T => structuredClone(value);
 const delay = () => new Promise<void>(resolve => setTimeout(resolve, 200));
@@ -86,13 +86,30 @@ function refreshDashboard(state: AppData): void {
   };
 }
 
-function sampleChain(total: number, referralCode = 'SG-ANDI28', network: NetworkMember[] = []): ChainMember[] {
+interface DemoReferrer { referralCode: string; tier: Tier; }
+
+/** Codes and tiers only: shared demo links never include identity or contact data. */
+function readDemoChain(referralCode = '', value = ''): DemoReferrer[] {
+  if (!value || value.length > 160 || !/^SG-[A-F0-9]{8}$/.test(referralCode)) return [];
+  const entries = value.split(',').map(entry => entry.split(':'));
+  if (entries.length > 3 || entries.some(parts => parts.length !== 2 || !/^[A-Z0-9-]{3,32}$/.test(parts[0]) || !['Registered', 'Classic', 'Premium'].includes(parts[1]))) return [];
+  if (entries[0]?.[0] !== referralCode || new Set(entries.map(parts => parts[0])).size !== entries.length) return [];
+  return entries.map(([code, tier]) => ({ referralCode: code, tier: tier as Tier }));
+}
+
+function sampleChain(total: number, referralCode = 'SG-ANDI28', network: NetworkMember[] = [], demoChain: DemoReferrer[] = []): ChainMember[] {
   const members = [
     { id: 'sample-andi', fullName: 'Andi Pratama', referralCode: 'SG-ANDI28', tier: 'Premium' as Tier },
     { id: 'sample-nadia', fullName: 'Nadia Safitri', referralCode: 'SG-NADIA', tier: 'Classic' as Tier },
     { id: 'sample-bayu', fullName: 'Bayu Kurniawan', referralCode: 'SG-BAYU', tier: 'Premium' as Tier },
     { id: 'sample-diah', fullName: 'Diah Pertiwi', referralCode: 'SG-DIAH', tier: 'Classic' as Tier },
   ];
+  if (demoChain[0]?.referralCode === referralCode) {
+    return demoChain.map((entry, index) => {
+      const known = [...members, ...network].find(member => member.referralCode === entry.referralCode);
+      return { id: known?.id || `demo-referrer-${entry.referralCode}`, fullName: known?.fullName || `Mitra demo ${entry.referralCode.slice(-4)}`, ...entry, level: index + 1, qualified: entry.tier !== 'Registered', rate: commissionRate(entry.tier, index + 1, true) * 100, commission: calculateCommission(total, entry.tier, index + 1, true, true) };
+    });
+  }
   const selected: typeof members = [];
   let code: string | undefined = referralCode;
   while (code && selected.length < 3) {
@@ -110,23 +127,36 @@ function sampleChain(total: number, referralCode = 'SG-ANDI28', network: Network
 }
 
 /** Deliberately memory-only: no identity images, filenames, or submitted personal data persist to local storage. */
-export function createSandboxRepository(options: { referralCode?: string; seedProfile?: boolean; verificationDelayMs?: number } = {}): Repository {
+export function createDemoRepository(options: { referralCode?: string; demoChain?: string; seedProfile?: boolean; verificationDelayMs?: number } = {}): Repository {
   let state = createSampleData(options.seedProfile === false || options.referralCode ? null : SAMPLE_PROFILE);
+  const sharedChain = readDemoChain(options.referralCode, options.demoChain);
+  const resolveChain = (total: number, code: string) => sampleChain(total, code, createSampleData().network, sharedChain);
   const callbacks = new Set<() => void>();
   const emit = () => callbacks.forEach(callback => callback());
   const checkouts = new Map<string, string>();
   let sentPhone = '';
-  let phoneChange = '';
   let verificationTimer: ReturnType<typeof setTimeout> | undefined;
   const requireProfile = () => {
     if (!state.profile || state.profile.verificationStatus !== 'verified') throw new Error('Selesaikan verifikasi akun sebelum melakukan pembelian.');
     return state.profile;
   };
   const repo: Repository = {
-    mode: 'sandbox',
+    mode: 'demo',
     async load() {
       refreshDashboard(state);
       return clone(state);
+    },
+    referralLink(origin) {
+      if (!state.profile) return '';
+      const profile = state.profile;
+      const link = new URL('/', origin);
+      link.searchParams.set('ref', profile.referralCode);
+      if (/^SG-[A-F0-9]{8}$/.test(profile.referralCode)) {
+        const ancestors = profile.referrerCode ? resolveChain(0, profile.referrerCode) : [];
+        const chain = [{ referralCode: profile.referralCode, tier: profile.tier }, ...ancestors].slice(0, 3);
+        link.searchParams.set('demo_chain', chain.map(member => `${member.referralCode}:${member.tier}`).join(','));
+      }
+      return link.toString();
     },
     async sendOtp(phone) {
       if (!isValidPhone(phone)) throw new Error('Masukkan nomor WhatsApp Indonesia yang valid.');
@@ -136,13 +166,7 @@ export function createSandboxRepository(options: { referralCode?: string; seedPr
     async verifyAndSubmit(input: RegistrationInput) {
       const phone = normalizePhone(input.phone);
       validateRegistration(input, false);
-      if (sentPhone !== phone || input.otp.trim() !== SANDBOX_OTP) throw new Error('Gunakan OTP contoh 123456 setelah mengirim kode.');
-      if (phoneChange === phone && state.profile) {
-        state.profile.phone = phone;
-        phoneChange = '';
-        emit();
-        return clone(state.profile);
-      }
+      if (sentPhone !== phone || input.otp.trim() !== DEMO_OTP) throw new Error('Gunakan OTP contoh 123456 setelah mengirim kode.');
       if (phone === SAMPLE_PROFILE.phone) {
         state = createSampleData();
         emit();
@@ -151,7 +175,7 @@ export function createSandboxRepository(options: { referralCode?: string; seedPr
       if (state.profile?.phone === phone && state.profile.verificationStatus !== 'rejected') return clone(state.profile);
       validateRegistration(input);
       const referrerCode = input.referralCode.trim().toUpperCase();
-      if (referrerCode && sampleChain(0, referrerCode, createSampleData().network).length === 0) throw new Error('Kode referral contoh tidak ditemukan. Gunakan SG-ANDI28.');
+      if (referrerCode && resolveChain(0, referrerCode).length === 0) throw new Error('Kode referral contoh tidak ditemukan. Gunakan SG-ANDI28.');
       state = createSampleData({ id: `sample-user-${crypto.randomUUID()}`, fullName: input.fullName.trim(), phone, tier: 'Registered', referralCode: `SG-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, referrerCode: input.referralCode.trim().toUpperCase() || null, verificationStatus: 'pending' });
       if (verificationTimer) clearTimeout(verificationTimer);
       verificationTimer = setTimeout(() => {
@@ -167,13 +191,7 @@ export function createSandboxRepository(options: { referralCode?: string; seedPr
       if (verificationTimer) clearTimeout(verificationTimer);
       state = createSampleData(null);
       sentPhone = '';
-      phoneChange = '';
       emit();
-    },
-    async updatePhone(phone) {
-      requireProfile();
-      await repo.sendOtp(phone);
-      phoneChange = normalizePhone(phone);
     },
     async createCheckout(input) {
       const profile = requireProfile();
@@ -209,12 +227,11 @@ export function createSandboxRepository(options: { referralCode?: string; seedPr
       order.pickupCode = `SGP-${String(Date.now()).slice(-6)}`;
       order.pickupToken = `SAMPLE-PICKUP-${crypto.randomUUID()}`;
       order.serials = Array.from({ length: order.quantity }, (_, index) => `SAMPLE-WRS-${Date.now()}-${index + 1}`);
-      order.chain = order.referralCode ? sampleChain(order.total, order.referralCode, createSampleData().network) : [];
+      order.chain = order.referralCode ? resolveChain(order.total, order.referralCode) : [];
       order.referralCommission = calculateCommission(order.total, profile.tier, 0, Boolean(order.referralCode), true);
       emit();
       return clone(order);
     },
-    async documentUrl() { throw new Error('Mode contoh tidak menyimpan atau menampilkan dokumen identitas.'); },
     subscribe(callback) { callbacks.add(callback); return () => { callbacks.delete(callback); }; },
   };
   return repo;

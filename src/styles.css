@@ -256,7 +256,7 @@ img {
   height:38px;
   font-size:12px;
   border:1px solid #e6dcc1}
-.sandbox-label {
+.demo-label {
   font-size:10px;
   font-weight:600;
   letter-spacing:.6px;
@@ -1028,7 +1028,7 @@ img {
   font-size:12px;
   line-height:1.6;
   margin:12px 0}
-.sandbox-note {
+.demo-note {
   font-size:10px;
   color:#967c35;
   line-height:1.6}
@@ -1067,7 +1067,7 @@ img {
   margin:17px 0 10px}
 .verification-pending>.muted {
   max-width:350px}
-.verification-pending .sandbox-note {
+.verification-pending .demo-note {
   margin-top:16px}
 .pending-progress {
   display:flex;
@@ -1784,7 +1784,7 @@ to {
   width:34px;
   height:34px;
   font-size:11px}
-.sandbox-label {
+.demo-label {
   font-size:10px;
   letter-spacing:.1px}
 .referral-toolbar {

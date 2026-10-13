@@ -1,76 +1,57 @@
 # Sampoerna Gold — Reseller & Buyer
 
-The first standalone Sampoerna Gold MVP application, built by Newtn Technology: a mobile-first web app for resellers and buyers, with its own Vercel deployment. The stockpoint and administration applications will be separate projects; there is no role switch in this app.
+A mobile-first interactive frontend by Newtn Technology. Every build runs entirely in the browser with sample data, including a Vercel production deployment. No database, authentication service, payment connection, API keys, or environment variables are required.
 
 ## Application structure
 
-The interface follows the supplied information architecture:
+The supplied information architecture is preserved:
 
-- **Referral:** tier, share referral, campaign banner, performance/date filters, referral totals, payout date and referral link configuration. Supporting views: referral transactions and the three-level partner network.
-- **Gold Catalog:** sale/buyback prices, 0.5 / 1 / 5 / 10 gram products, partner CTA and My Orders. Checkout uses the specified two-step modal, followed by order details and the pickup QR.
-- **Account / referral landing:** e-KTP, full name, WhatsApp OTP, referral code, selfie and identity consent; pending verification; verified profile with locked documents and sign-out.
+- **Referral:** tier, referral sharing, campaign banner, performance filters, totals, payout date, referral transactions and three-level partner network.
+- **Gold Catalog:** sample sell/buyback prices, 0.5 / 1 / 5 / 10 gram products, partner CTA, My Orders, two-step checkout and pickup receipt.
+- **Account / referral landing:** synthetic e-KTP and selfie, name, sample WhatsApp number, demo OTP, referral code, pending verification, verified profile and sign-out.
 
-The visual system uses red `#B72731`, gold `#C3A753`, black `#1C1C1C` and white `#FFFFFF`, with a minimum text size of 10px. Text is in Indonesian.
+Brand colors are red `#B72731`, gold `#C3A753`, black `#1C1C1C` and white `#FFFFFF`. The minimum text size is 10px. There is no role switcher or additional page structure.
 
 ## Run locally
 
-Use Node.js 22.12 or newer and npm. From this directory:
+Use Node.js 22.12 or newer:
 
 ```sh
 npm ci
-cp .env.example .env.local
-```
-
-For the local sandbox, keep the Supabase values blank and change `.env.local` to include:
-
-```dotenv
-VITE_ENABLE_SANDBOX=true
-```
-
-Then run:
-
-```sh
 npm run dev
 ```
 
-Open the local URL printed by Vite. The sandbox is clearly labelled. It starts with the synthetic Premium account **Andi Pratama**. Open `/?ref=SG-ANDI28` for the referral registration journey. Use the **Gunakan contoh** buttons to generate synthetic identity images, request an OTP, and enter `123456`. New sample verification completes automatically after about four seconds. QRIS, virtual accounts, payment confirmation, prices and inventory are simulated in this mode.
+Open the URL printed by Vite, normally `http://127.0.0.1:4174`. Use an HTTP preview rather than opening `index.html` directly.
 
-Sandbox changes exist only in memory and reset when the page reloads. The sandbox does not upload or persist identity images, filenames or submitted personal data. Use made-up names and numbers. To re-enter the seeded account after signing out, use `081234567890`, request an OTP and enter `123456`.
+## Try the interactive flows
 
-## Supabase mode
+The app starts with the sample Premium account **Andi Pratama**. Explore referral charts, filters, order pagination, network levels, share links and the gold catalogue.
 
-Set both `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to activate the live Supabase repository. It takes precedence over sandbox mode. Keep `VITE_ENABLE_SANDBOX=false` for production.
+Open `/?ref=SG-ANDI28` to try registration. Use **Gunakan contoh** for synthetic KTP/selfie images, enter a made-up name and Indonesian phone number, request an OTP and enter **123456**. The simulated verification completes after approximately four seconds. To return to Andi after signing out, use **081234567890** and OTP **123456**.
 
-The repository includes the schema, row-level access controls, private identity storage and Edge Functions for KYC submission, payment creation, payment synchronization and signed webhooks. Connect your selected providers through the documented server-side bridge contracts. Supabase Auth handles WhatsApp OTP. A browser payment-confirmation click asks the server to check the gateway; it cannot mark a real order paid.
+Checkout supports QRIS and Virtual Account examples. **Konfirmasi pembayaran demo** creates a sample pickup receipt and updates the account's orders, qualification and commission totals. Neither the QR nor the virtual account receives money, and no WhatsApp message is sent.
 
-Provider credentials, live prices, stockpoints and serialized inventory are not supplied. Unconfigured production builds display the connection state rather than silently simulating a live account or payment. The default database commission setting enables one upline level; three-level payouts require an explicit server-side configuration change.
+New accounts can share a demo referral link that works in a fresh tab. The link carries only generated referral codes and their tier snapshot, so the next registration and three-level commission example can resolve without shared storage. Copy a new link after changing tiers; previously copied links retain their demo snapshot.
 
-See [Deployment](docs/DEPLOYMENT.md) for Vercel and Supabase setup and [Backend and provider contracts](docs/BACKEND.md) for integration payloads and database behavior.
+All changes remain in memory and reset when the page reloads. Identity files cannot be uploaded; the document buttons generate synthetic examples. No customer information is sent to an external service or saved to local storage.
 
-## Validate and build
+## Check and deploy
 
 ```sh
-npm run typecheck
 npm test
 npm run build
 npm run preview
 ```
 
-The build output is `dist/`. Commit `package-lock.json` and use `npm ci` for reproducible installs. The `build` command checks the browser TypeScript application; Edge Functions and SQL require their own Supabase integration validation.
+Vercel settings and direct-route support are included. See [Deployment](docs/DEPLOYMENT.md). No `.env` file is needed.
 
 ## Repository layout
 
 ```text
-src/components/       Approved pages, list views and modals
-src/lib/              Types, formatting, business rules and repositories
-public/assets/        Brand/product assets and source attribution
-supabase/migrations/  Schema, RPCs, access policies and seed catalogue
-supabase/functions/   Configurable KYC and payment integrations
-tests/                Business-rule and repository verification
-docs/                 Deployment and backend integration guidance
-vercel.json           Vite build, SPA rewrites and response headers
+src/components/       Pages, list views and modals
+src/lib/              Demo data, local interactions, types and business rules
+public/assets/        Product assets and attribution
+tests/               Frontend workflow and business-rule checks
+docs/                Deployment and verification notes
+vercel.json           Static build, route fallback and response headers
 ```
-
-The finance payout runner, buyback operations, stockpoint release console and administrative interface belong to the remaining applications and are not exposed as extra pages here. This repository prepares the first app for deployment; creating cloud projects, entering secrets, enabling providers and publishing are separate deployment actions.
-
-Run `npm run test:db` for the included local PostgreSQL migration and authorization checks. See [backend validation details](./docs/BACKEND.md).
